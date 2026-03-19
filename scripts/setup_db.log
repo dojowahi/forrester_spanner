@@ -1,0 +1,39 @@
+=== Logging output to scripts/setup_db.log ===
+=== Starting Geo-partitioned Spanner Database Setup ===
+Instance: live-retail-geo
+Database: spanner-demo-db
+Checking instance live-retail-geo...
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+Instance live-retail-geo already exists.
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+Database spanner-demo-db already exists.
+Recreating database (Drop and Recreate) to ensure clean slate...
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+Database deleted.
+Creating database spanner-demo-db...
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+Creating database...
+.....done.
+Database created successfully.
+Enabling geo-partitioning preview...
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+Schema updating...
+.............................................................................................................................................................................................................................................................................done.
+Creating instance partitions...
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+Partition americas-partition already exists.
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+Partition europe-partition already exists.
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+Partition asia-partition already exists.
+Keeping full schema (with Placements)...
+Applying DDL from clean schema...
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+Schema updating...
+.............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................done.
+Schema applied successfully.
+=== Database Setup Complete ===

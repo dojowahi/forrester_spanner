@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  /* Google Colors */
+  --color-google-blue: #4285F4;
+  --color-google-red: #EA4335;
+  --color-google-yellow: #FBBC04;
+  --color-google-green: #34A853;
+  --color-google-gray-50: #F8F9FA;
+  --color-google-gray-100: #F1F3F4;
+  --color-google-gray-200: #E8EAED;
+  --color-google-gray-800: #3C4043;
+  --color-google-gray-900: #202124;
+}
+
+:root {
+  background-color: var(--color-google-gray-50);
+  color: var(--color-google-gray-900);
+}
