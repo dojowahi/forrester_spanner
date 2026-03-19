@@ -1,39 +1,99 @@
-=== Logging output to scripts/setup_db.log ===
+=== Logging output to setup_db.log ===
+++ INSTANCE_ID=live-retail-geo
+++ DATABASE_ID=spanner-demo-db
+++ INSTANCE_CONFIG=regional-us-central1
+++ echo '=== Starting Geo-partitioned Spanner Database Setup ==='
 === Starting Geo-partitioned Spanner Database Setup ===
+++ echo 'Instance: live-retail-geo'
 Instance: live-retail-geo
+++ echo 'Database: spanner-demo-db'
 Database: spanner-demo-db
+++ echo 'Checking instance live-retail-geo...'
 Checking instance live-retail-geo...
+++ gcloud spanner instances list '--format=value(name)'
+++ grep -q live-retail-geo
 WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+++ echo 'Instance live-retail-geo already exists.'
 Instance live-retail-geo already exists.
+++ gcloud spanner databases list --instance=live-retail-geo '--format=value(name)'
+++ grep -q spanner-demo-db
 WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+++ echo 'Database spanner-demo-db already exists.'
 Database spanner-demo-db already exists.
+++ echo 'Recreating database (Drop and Recreate) to ensure clean slate...'
 Recreating database (Drop and Recreate) to ensure clean slate...
+++ gcloud spanner databases delete spanner-demo-db --instance=live-retail-geo --quiet
 WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
 WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+++ '[' 0 -ne 0 ']'
+++ echo 'Database deleted.'
 Database deleted.
+++ echo 'Creating database spanner-demo-db...'
 Creating database spanner-demo-db...
+++ gcloud spanner databases create spanner-demo-db --instance=live-retail-geo
 WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
 WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
 Creating database...
 .....done.
+++ '[' 0 -ne 0 ']'
+++ echo 'Database created successfully.'
 Database created successfully.
+++ echo 'Enabling geo-partitioning preview...'
 Enabling geo-partitioning preview...
+++ gcloud spanner databases ddl update spanner-demo-db --instance=live-retail-geo '--ddl=ALTER DATABASE `spanner-demo-db` SET OPTIONS (opt_in_dataplacement_preview = true)'
 WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
 WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
 Schema updating...
-.............................................................................................................................................................................................................................................................................done.
+..........................................................................................................................................................................................done.
+++ '[' 0 -ne 0 ']'
+++ echo 'Creating instance partitions...'
 Creating instance partitions...
+++ partitions=("americas-partition|regional-us-east1|Americas Distribution" "europe-partition|regional-europe-west1|Europe Distribution" "asia-partition|regional-asia-southeast2|Asia Distribution")
+++ for p in "${partitions[@]}"
+++ IFS='|'
+++ read -r name config desc
+++ gcloud beta spanner instance-partitions list --instance=live-retail-geo '--format=value(name)'
+++ grep -q americas-partition
 WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+++ echo 'Partition americas-partition already exists.'
 Partition americas-partition already exists.
+++ for p in "${partitions[@]}"
+++ IFS='|'
+++ read -r name config desc
+++ gcloud beta spanner instance-partitions list --instance=live-retail-geo '--format=value(name)'
+++ grep -q europe-partition
 WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+++ echo 'Partition europe-partition already exists.'
 Partition europe-partition already exists.
+++ for p in "${partitions[@]}"
+++ IFS='|'
+++ read -r name config desc
+++ gcloud beta spanner instance-partitions list --instance=live-retail-geo '--format=value(name)'
+++ grep -q asia-partition
 WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+++ echo 'Partition asia-partition already exists.'
 Partition asia-partition already exists.
+++ SKIP_PLACEMENTS=false
+++ '[' false = true ']'
+++ echo 'Keeping full schema (with Placements)...'
 Keeping full schema (with Placements)...
+++ cp schema.ddl schema_clean.txt
+++ echo 'Applying DDL from clean schema...'
 Applying DDL from clean schema...
+++ gcloud spanner databases ddl update spanner-demo-db --instance=live-retail-geo --ddl-file=schema_clean.txt
 WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
 WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
 Schema updating...
 .............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................done.
+++ '[' 0 -eq 0 ']'
+++ echo 'Schema applied successfully.'
 Schema applied successfully.
-=== Database Setup Complete ===
+++ echo 'Verifying tables created...'
+Verifying tables created...
++++ gcloud spanner databases execute-sql spanner-demo-db --instance=live-retail-geo '--sql=SELECT table_name FROM information_schema.tables WHERE table_schema = '\'''\'' AND table_type = '\''BASE TABLE'\''' '--format=value(table_name)'
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+WARNING: This command is using service account impersonation. All API calls will be executed as [genai-592@gen-ai-4all.iam.gserviceaccount.com].
+++ TABLES=
+++ '[' -z '' ']'
+++ echo 'Error: No tables found in the database. Schema application may have failed.'

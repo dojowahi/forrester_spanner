@@ -1,10 +1,13 @@
 #!/bin/bash
 # Spanner Database Setup and Recreate Script
 
-LOG_FILE="scripts/setup_db.log"
+LOG_FILE="setup_db.log"
 # Redirect stdout and stderr to a log file while still printing to console
 exec > >(tee -i "$LOG_FILE") 2>&1
 echo "=== Logging output to $LOG_FILE ==="
+
+# Log all executed steps
+set -x
 
 INSTANCE_ID="live-retail-geo"
 DATABASE_ID="spanner-demo-db"
@@ -96,12 +99,12 @@ if [ "$SKIP_PLACEMENTS" = true ]; then
     grep -iv "CREATE PLACEMENT" > scripts/schema_clean.txt
 else
     echo "Keeping full schema (with Placements)..."
-    cp scripts/schema.ddl scripts/schema_clean.txt
+    cp schema.ddl schema_clean.txt
 fi
 
 # 4. Apply DDL
 echo "Applying DDL from clean schema..."
-gcloud spanner databases ddl update "$DATABASE_ID" --instance="$INSTANCE_ID" --ddl-file=scripts/schema_clean.txt
+gcloud spanner databases ddl update "$DATABASE_ID" --instance="$INSTANCE_ID" --ddl-file=schema_clean.txt
 
 if [ $? -eq 0 ]; then
     echo "Schema applied successfully."
@@ -110,5 +113,23 @@ else
     exit 1
 fi
 
+# 5. Verify Tables Created
+echo "Verifying tables created..."
+TABLES=$(gcloud spanner databases execute-sql "$DATABASE_ID" --instance="$INSTANCE_ID" \
+  --sql="SELECT table_name FROM information_schema.tables" \
+  --format="value(table_name)")
+
+if [ -z "$TABLES" ]; then
+    echo "Error: No tables found in the database. Schema application may have failed."
+    exit 1
+else
+    echo "Tables successfully created:"
+    echo "$TABLES" | while read -r table; do
+        if [ -n "$table" ]; then
+            echo "  - $table"
+        fi
+    done
+fi
+
 echo "=== Database Setup Complete ==="
-rm scripts/schema_clean.txt
+rm -f scripts/schema_clean.txt
