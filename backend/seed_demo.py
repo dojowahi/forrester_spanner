@@ -326,11 +326,13 @@ def seed_data(args):
                 ))
 
     # --- APPLY BATCHES ---
-    def batch_insert(table_name, columns, data_rows):
+    def batch_insert(table_name, columns, data_rows, chunk_size=2000):
          if not data_rows: return
          logger.info(f"Inserting {len(data_rows)} rows into {table_name}...")
-         with database.batch() as batch:
-              batch.insert(table=table_name, columns=columns, values=data_rows)
+         for i in range(0, len(data_rows), chunk_size):
+             chunk = data_rows[i:i + chunk_size]
+             with database.batch() as batch:
+                  batch.insert(table=table_name, columns=columns, values=chunk)
          logger.success(f"Inserted into {table_name} successfully.")
 
     if args.part in ('1', 'all'):
