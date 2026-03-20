@@ -14,4 +14,7 @@ docs/
 
 # Secrets and Local config
 .env
-.agent/
+
+
+# Test files
+test*

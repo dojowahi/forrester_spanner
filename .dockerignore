@@ -1,0 +1,10 @@
+.env
+.venv
+node_modules
+__pycache__
+*.pyc
+.git
+.gitignore
+uv.lock
+Dockerfile
+deploy.sh

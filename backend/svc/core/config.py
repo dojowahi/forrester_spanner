@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     VERTEX_AI: bool = os.getenv("VERTEX_AI", "False").lower() == "true"
     PROJECT_ID: str = os.getenv("PROJECT_ID", "")
     MODEL_LOCATION: str = os.getenv("MODEL_LOCATION", "global")
+    EMBEDDING_LOCATION: str = os.getenv("EMBEDDING_LOCATION", os.getenv("MODEL_LOCATION", "us-central1"))
     
     class Config:
         env_file = ".env"

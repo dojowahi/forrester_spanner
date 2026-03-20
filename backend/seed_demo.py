@@ -17,21 +17,35 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from backend.config import settings
 from backend.ai import get_embeddings, generate_image
 
-# Coordinate Ranges for Placements
+import math
+
+# Coordinate Hubs for Placements
 PLACEMENT_REGIONS = {
-    "americas": {
-        "lat": (24.0, 49.0),  # US/Canada typical
-        "lon": (-125.0, -66.0)
-    },
-    "europe": {
-        "lat": (36.0, 64.0),  # Europe typical
-        "lon": (-9.0, 30.0)
-    },
-    "asia": {
-        "lat": (-10.0, 40.0), # Southeast Asia/India/China
-        "lon": (70.0, 140.0)
-    }
+    "americas": [
+        {"lat": 34.0522, "lon": -118.2437}, # Los Angeles, CA
+        {"lat": 37.7749, "lon": -122.4194}, # San Francisco, CA
+        {"lat": 44.9778, "lon": -93.2650},  # Minneapolis, MN
+        {"lat": 40.7128, "lon": -74.0060}   # New York City, NY
+    ],
+    "europe": [
+        {"lat": 48.8566, "lon": 2.3522},   # Paris, France
+        {"lat": 45.7640, "lon": 4.8357},   # Lyon, France
+        {"lat": 52.5200, "lon": 13.4050},  # Berlin, Germany
+        {"lat": 48.1351, "lon": 11.5820}   # Munich, Germany
+    ],
+    "asia": [
+        {"lat": 19.0760, "lon": 72.8777},  # Mumbai, India
+        {"lat": 28.6139, "lon": 77.2090},  # New Delhi, India
+        {"lat": 12.9716, "lon": 77.5946}   # Bangalore, India
+    ]
 }
+
+def add_random_radius(lat, lon, max_km=5.0, exact_km=None):
+    distance_km = exact_km if exact_km is not None else random.uniform(0, max_km)
+    angle = random.uniform(0, 2 * math.pi)
+    delta_lat = (distance_km * math.cos(angle)) / 111.0
+    delta_lon = (distance_km * math.sin(angle)) / (111.0 * math.cos(math.radians(lat)))
+    return lat + delta_lat, lon + delta_lon
 
 try:
     import s2sphere
@@ -46,21 +60,21 @@ except ImportError:
         return ctypes.c_int64(val).value
 
 PRODUCT_PROMPTS = [
-    "cozy autumn sweater with breathable mesh",
     "minimalist smart watch with AMOLED screen",
-    "organic herbal tea set with chamomile",
-    "ergonomic desk chair with lumbar support",
     "noise-canceling over-ear headphones pack",
-    "sustainable stainless steel water bottle",
-    "hand-poured aromatic soy candle glass",
-    "professional Damascus steel chef knife",
     "high-speed wireless charging pad stand",
     "4K ultra-wide curve computer monitor spec",
-    "smart yoga mat with posture coaching sensors",
-    "organic bamboo sheets queen set cooling",
     "retro-style record player with bluetooth",
-    "handcrafted leather travel duffel bag",
-    "compact air purifier with HEPA filter"
+    "compact air purifier with HEPA filter",
+    "mechanical gaming keyboard with RGB switches",
+    "ultra-lightweight wireless gaming mouse",
+    "smart home security camera 1080p",
+    "portable power bank 20000mAh with fast charge",
+    "high-fidelity bookshelf speakers set",
+    "streaming webcam with ring light",
+    "professional podcasting microphone",
+    "smart thermostat with energy tracking",
+    "mesh wifi 6 router system"
 ]
 
 def generate_gemini_products(client, model_name=None, count=5):
@@ -164,7 +178,10 @@ def seed_data(args):
                       blob.upload_from_string(img_bytes, content_type="image/jpeg")
                       img_url = f"https://storage.googleapis.com/{settings.GCS_BUCKET}/products/{p_id}.jpg"
                       logger.success(f"  Uploaded Image to GCS for {p['name']}")
-                      img_emb = get_embeddings(client_text, image_bytes=img_bytes)
+                      if "text-embedding" in settings.EMBEDDING_MODEL:
+                          img_emb = get_embeddings(client_text, text=prompt)
+                      else:
+                          img_emb = get_embeddings(client_text, image_bytes=img_bytes)
             except Exception as e:
                  logger.warning(f"Image generation failed for {p['name']}: {e}")
 
@@ -179,30 +196,45 @@ def seed_data(args):
         stores_per_region = args.stores // len(PLACEMENT_REGIONS)
         customers_per_region = args.customers // len(PLACEMENT_REGIONS)
         
-        for placement, coord_ranges in PLACEMENT_REGIONS.items():
+        for placement, hubs in PLACEMENT_REGIONS.items():
             logger.info(f"Generating data for placement area: {placement}...")
             # Generate Stores
+            region_stores = []
             for _ in range(stores_per_region):
-                lat = random.uniform(*coord_ranges['lat'])
-                lon = random.uniform(*coord_ranges['lon'])
+                hub = random.choice(hubs)
+                # Scatter stores slightly around the hub (within ~10km)
+                lat, lon = add_random_radius(hub["lat"], hub["lon"], max_km=10.0)
                 store_id = str(uuid.uuid4())
                 s2_id = get_s2_cell_id(lat, lon)
-                stores_batch.append((
+                store_tuple = (
                     store_id, f"{fake.company()} {placement.title()} Hub",
                     lat, lon, s2_id, placement
-                ))
+                )
+                stores_batch.append(store_tuple)
+                region_stores.append(store_tuple)
             
             # Generate Customers
             for i in range(customers_per_region):
                 is_fraud = i < (customers_per_region // 10)
-                lat = random.uniform(*coord_ranges['lat'])
-                lon = random.uniform(*coord_ranges['lon'])
-                cust_id = str(uuid.uuid4())
-                s2_id = get_s2_cell_id(lat, lon)
+                
+                # Pick a random store in this region to be near
+                store_lat, store_lon = 0.0, 0.0
+                if region_stores:
+                    store = random.choice(region_stores)
+                    store_lat, store_lon = store[2], store[3]
+                else:
+                    hub = random.choice(hubs)
+                    store_lat, store_lon = hub["lat"], hub["lon"]
                 
                 if is_fraud:
-                    lat, lon = coord_ranges['lat'][0], coord_ranges['lon'][0] 
-                    s2_id = get_s2_cell_id(lat, lon)
+                    # Place fraud exactly 5km from the store consistently
+                    lat, lon = add_random_radius(store_lat, store_lon, exact_km=5.0)
+                else:
+                    # Place legitimate customers 0-5km from the store
+                    lat, lon = add_random_radius(store_lat, store_lon, max_km=5.0)
+                    
+                cust_id = str(uuid.uuid4())
+                s2_id = get_s2_cell_id(lat, lon)
 
                 customers_batch.append((
                     cust_id, placement, fake.name(), 

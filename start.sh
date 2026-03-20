@@ -1,7 +1,16 @@
 #!/bin/bash
 # start.sh - Shutdown and Restart Backend and Frontend Servers
 
-PORT=${1:-8000}
+if [ "$1" == "stop" ]; then
+    STOP_ONLY=true
+    PORT=${2:-8000}
+elif [[ "$1" =~ ^[0-9]+$ ]]; then
+    PORT=$1
+    STOP_ONLY=false
+else
+    PORT=${1:-8000}
+    STOP_ONLY=false
+fi
 FRONTEND_PORT=5173
 
 echo "=== Server Manager ==="
@@ -42,12 +51,24 @@ else
     echo "💡 No active process found on port $FRONTEND_PORT."
 fi
 
+if [ "$STOP_ONLY" = true ]; then
+    echo "🛑 Stop command received. All related servers have been stopped."
+    exit 0
+fi
+
 # 3. Add root to path for standard model references
 export PYTHONPATH=$PYTHONPATH:.
 
 # 4. Startup Backend Server
 echo "🚀 Starting FastAPI on port $PORT..."
 uv run uvicorn backend.svc.main:app --host 0.0.0.0 --port "$PORT" --reload &
+
+# Wait for backend to be ready
+echo "⏳ Waiting for backend to be ready on port $PORT..."
+while ! nc -z localhost $PORT; do
+    sleep 1
+done
+echo "✅ Backend is up!"
 
 # 5. Startup Frontend Server
 echo "🚀 Starting Frontend on port $FRONTEND_PORT..."

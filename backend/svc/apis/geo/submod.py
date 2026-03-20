@@ -50,3 +50,64 @@ def get_nearby_stores(database, lat: float, lon: float, radius_km: float = 50.0)
         return []
         
     return results
+
+def get_nearby_customers_for_store(database, store_id: str, radius_km: float = 500.0) -> Dict:
+    """
+    Finds customers within a radius (in km) from a specific store and groups by loyalty tie.
+    """
+    radius_degrees = radius_km / 111.0 # Approximate degrees
+    
+    query = """
+        SELECT c.CustomerId, c.FullName, c.Email, c.LoyaltyTier, c.Latitude, c.Longitude,
+               SQRT(POWER(c.Latitude - s.Latitude, 2) + POWER(c.Longitude - s.Longitude, 2)) * 111.0 AS DistanceKm
+        FROM Customers c
+        JOIN Stores s ON s.StoreId = @store_id
+        WHERE POWER(c.Latitude - s.Latitude, 2) + POWER(c.Longitude - s.Longitude, 2) < POWER(@radius_degrees, 2)
+        ORDER BY DistanceKm ASC
+        LIMIT 50
+    """
+    
+    query_grouped = """
+        SELECT c.LoyaltyTier, COUNT(c.CustomerId) as MemberCount
+        FROM Customers c
+        JOIN Stores s ON s.StoreId = @store_id
+        WHERE POWER(c.Latitude - s.Latitude, 2) + POWER(c.Longitude - s.Longitude, 2) < POWER(@radius_degrees, 2)
+        GROUP BY c.LoyaltyTier
+        ORDER BY MemberCount DESC
+    """
+    
+    params = {
+        "store_id": store_id,
+        "radius_degrees": radius_degrees
+    }
+    
+    param_types = {
+        "store_id": spanner.param_types.STRING,
+        "radius_degrees": spanner.param_types.FLOAT64
+    }
+    
+    results = {"nearby_customers": [], "grouped_loyalty": []}
+    try:
+        with database.snapshot(multi_use=True) as snapshot:
+            rows = snapshot.execute_sql(query, params=params, param_types=param_types)
+            for row in rows:
+                results["nearby_customers"].append({
+                    "CustomerId": row[0],
+                    "FullName": row[1],
+                    "Email": row[2],
+                    "LoyaltyTier": row[3],
+                    "Latitude": row[4],
+                    "Longitude": row[5],
+                    "DistanceMeters": float(row[6]) * 1000.0 if row[6] is not None else 0.0
+                })
+            
+            grouped_rows = snapshot.execute_sql(query_grouped, params=params, param_types=param_types)
+            for row in grouped_rows:
+                results["grouped_loyalty"].append({
+                    "LoyaltyTier": row[0],
+                    "MemberCount": row[1]
+                })
+    except Exception as e:
+        print(f"Customer Proximity query failed: {e}")
+        
+    return results

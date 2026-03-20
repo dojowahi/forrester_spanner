@@ -12,7 +12,7 @@ Category STRING(100),
 ThumbnailUrl STRING(MAX),
 DescriptionEmbedding ARRAY<FLOAT32>(vector_length=>768),
 ImageEmbedding ARRAY<FLOAT32>(vector_length=>768),
-SearchTokens TOKENLIST AS (TOKENIZE_FULLTEXT (Name)) HIDDEN,
+SearchTokens TOKENLIST AS (TOKENIZE_FULLTEXT (CONCAT(Name, ' ', IFNULL(Description, '')))) HIDDEN,
 DateGenerated TIMESTAMP OPTIONS (allow_commit_timestamp=true),
 ) PRIMARY KEY (ProductId);
 CREATE TABLE Stores (

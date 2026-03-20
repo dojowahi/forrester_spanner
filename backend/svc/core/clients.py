@@ -15,3 +15,9 @@ ai_client = genai.Client(
     project=settings.PROJECT_ID if settings.PROJECT_ID else None,
     location=settings.MODEL_LOCATION if settings.MODEL_LOCATION else None
 )
+
+embedding_client = genai.Client(
+    vertexai=settings.VERTEX_AI,
+    project=settings.PROJECT_ID if settings.PROJECT_ID else None,
+    location=settings.EMBEDDING_LOCATION if hasattr(settings, 'EMBEDDING_LOCATION') and settings.EMBEDDING_LOCATION else None
+)
