@@ -58,7 +58,9 @@ SELECT c.CustomerId, c.FullName, c.Email, c.LoyaltyTier, c.Latitude, c.Longitude
        SQRT(POWER(c.Latitude - s.Latitude, 2) + POWER(c.Longitude - s.Longitude, 2)) * 111.0 AS DistanceKm
 FROM Customers c
 JOIN Stores s ON s.StoreId = '${selectedStore.StoreId}'
-WHERE POWER(c.Latitude - s.Latitude, 2) + POWER(c.Longitude - s.Longitude, 2) < POWER(5.0 / 111.0, 2)
+WHERE c.Latitude BETWEEN s.Latitude - 0.05 AND s.Latitude + 0.05
+  AND c.Longitude BETWEEN s.Longitude - 0.05 AND s.Longitude + 0.05
+  AND POWER(c.Latitude - s.Latitude, 2) + POWER(c.Longitude - s.Longitude, 2) < POWER(5.0 / 111.0, 2)
 ORDER BY DistanceKm ASC
 LIMIT 50;
 
@@ -67,7 +69,9 @@ LIMIT 50;
 SELECT c.LoyaltyTier, COUNT(c.CustomerId) as MemberCount
 FROM Customers c
 JOIN Stores s ON s.StoreId = '${selectedStore.StoreId}'
-WHERE POWER(c.Latitude - s.Latitude, 2) + POWER(c.Longitude - s.Longitude, 2) < POWER(5.0 / 111.0, 2)
+WHERE c.Latitude BETWEEN s.Latitude - 0.05 AND s.Latitude + 0.05
+  AND c.Longitude BETWEEN s.Longitude - 0.05 AND s.Longitude + 0.05
+  AND POWER(c.Latitude - s.Latitude, 2) + POWER(c.Longitude - s.Longitude, 2) < POWER(5.0 / 111.0, 2)
 GROUP BY c.LoyaltyTier
 ORDER BY MemberCount DESC;
 ` : `
@@ -77,8 +81,9 @@ ORDER BY MemberCount DESC;
 SELECT StoreId, StoreName, Latitude, Longitude,
        SQRT(POWER(Latitude - @lat, 2) + POWER(Longitude - @lon, 2)) * 111.0 AS DistanceKm
 FROM Stores
-WHERE POWER(Latitude - @lat, 2) + POWER(Longitude - @lon, 2) < POWER(@radius_degrees, 2)
-  -- Application-level filtering applied on: StoreName LIKE '%${HUBS[activeHub].name}%'
+WHERE Latitude BETWEEN @lat - @radius_degrees AND @lat + @radius_degrees
+  AND Longitude BETWEEN @lon - @radius_degrees AND @lon + @radius_degrees
+  AND POWER(Latitude - @lat, 2) + POWER(Longitude - @lon, 2) < POWER(@radius_degrees, 2)
 ORDER BY DistanceKm ASC
 LIMIT 50
 `;

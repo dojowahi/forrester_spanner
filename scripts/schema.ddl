@@ -119,6 +119,13 @@ EDGE TABLES (
 -- Geospatial S2 Indexes
 CREATE INDEX StoresByLocation ON Stores(S2CellId);
 CREATE INDEX CustomersByLocation ON Customers(S2CellId);
+
+-- Graph & Geo Optimization Indexes
+CREATE INDEX OrderItemsByProductId ON OrderItems(ProductId);
+CREATE INDEX PaymentsBySessionId ON Payments(SessionId);
+CREATE INDEX PaymentsByToken ON Payments(PaymentMethodToken);
+CREATE INDEX CustomersByCoords ON Customers(Latitude, Longitude);
+
 -- 7. Search & Change Streams
 CREATE VECTOR INDEX ProductDescriptionIndex ON Products (DescriptionEmbedding)
 WHERE DescriptionEmbedding IS NOT NULL

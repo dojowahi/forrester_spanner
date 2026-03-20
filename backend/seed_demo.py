@@ -286,16 +286,23 @@ def seed_data(args):
             ))
 
         # 2. Payments
-        logger.info(f"Generating {args.payments} Payments...")
-        for _ in range(args.payments):
-            if not user_sessions_batch: break
-            session = random.choice(user_sessions_batch)
-            payments_batch.append((
-                str(uuid.uuid4()), session[0], session[1], 
-                Decimal(f"{random.uniform(10.0, 500.0):.2f}"), 
-                f"card_token_{random.randint(1000, 9999)}", 
-                random.choice(['APPROVED', 'DECLINED']), datetime.utcnow()
-            ))
+        logger.info(f"Generating Payments with realistic Fraud Clusters ...")
+        import math
+        num_fraud_sessions = max(1, math.ceil(len(user_sessions_batch) * 0.05))
+        fraud_sessions = random.sample(user_sessions_batch, num_fraud_sessions)
+        fraud_set = {s[0] for s in fraud_sessions}
+        
+        for session in user_sessions_batch:
+            is_fraud = session[0] in fraud_set
+            num_payments = random.randint(7, 15) if is_fraud else 1
+            
+            for _ in range(num_payments):
+                payments_batch.append((
+                    str(uuid.uuid4()), session[0], session[1], 
+                    Decimal(f"{random.uniform(10.0, 500.0):.2f}"), 
+                    f"card_token_{random.randint(1000, 9999)}", 
+                    random.choice(['APPROVED', 'DECLINED']), datetime.utcnow()
+                ))
 
         # 3. Orders
         logger.info(f"Generating {args.orders} Orders...")

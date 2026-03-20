@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Store, ShieldAlert, TrendingUp, Database, Activity } from 'lucide-react';
+import { Store, ShieldAlert, ThumbsUp, TrendingUp, Database, Activity } from 'lucide-react';
 import SearchView from '../views/SearchView';
-import GraphView from '../views/GraphView';
+import FraudView from '../views/FraudView';
+import RecsView from '../views/RecsView';
 import GeoView from '../views/GeoView';
 import CartView from '../views/CartView';
 import DbDataView from '../views/DbDataView';
 
-type TabId = 'storefront' | 'risk' | 'growth' | 'db' | 'supply';
+type TabId = 'storefront' | 'risk' | 'growth' | 'db' | 'supply' | 'recs';
 
 interface NavItemProps {
   label: string;
@@ -35,7 +36,8 @@ export default function ShellLayout() {
   const renderContent = () => {
     switch(activeTab) {
       case 'storefront': return <SearchView />;
-      case 'risk': return <GraphView />;
+      case 'risk': return <FraudView />;
+      case 'recs': return <RecsView />;
       case 'db': return <DbDataView />;
       case 'supply': return <CartView />;
       case 'growth': return <GeoView />;
@@ -57,7 +59,8 @@ export default function ShellLayout() {
         <nav className="flex flex-col gap-2 flex-1 mt-4">
           <NavItem label="Storefront (CX)" icon={<Store className="w-4 h-4" />} active={activeTab === 'storefront'} onClick={() => setActiveTab('storefront')} />
           <NavItem label="Checkout simulator" icon={<Activity className="w-4 h-4" />} active={activeTab === 'supply'} onClick={() => setActiveTab('supply')} />
-          <NavItem label="Spanner Graph" icon={<ShieldAlert className="w-4 h-4" />} active={activeTab === 'risk'} onClick={() => setActiveTab('risk')} />
+          <NavItem label="Fraud Rings" icon={<ShieldAlert className="w-4 h-4" />} active={activeTab === 'risk'} onClick={() => setActiveTab('risk')} />
+          <NavItem label="Peer Recs" icon={<ThumbsUp className="w-4 h-4" />} active={activeTab === 'recs'} onClick={() => setActiveTab('recs')} />
           <NavItem label="Geospatial" icon={<TrendingUp className="w-4 h-4" />} active={activeTab === 'growth'} onClick={() => setActiveTab('growth')} />
 
           <div className="my-2 border-t border-google-gray-100"></div>

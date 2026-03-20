@@ -29,7 +29,19 @@ SERVICE_ACCOUNT="genai-592@gen-ai-4all.iam.gserviceaccount.com"
 
 # 1. Build and Push using Cloud Build
 echo "📦 Building and pushing Docker image using Cloud Build..."
+
+# Temporarily copy frontend/.env to frontend/.env.production so Cloud Build can bake the Maps API key into Vite
+if [ -f "frontend/.env" ]; then
+  echo "🗺️  Injecting frontend environments variables to build..."
+  cp frontend/.env frontend/.env.production
+fi
+
 gcloud builds submit --tag "$IMAGE_NAME" . --project="$PROJECT_ID" --impersonate-service-account="$SERVICE_ACCOUNT"
+
+# Cleanup temporary env
+if [ -f "frontend/.env.production" ]; then
+  rm frontend/.env.production
+fi
 
 # 2. Deploy to Cloud Run
 echo "🚢 Deploying to Cloud Run..."
