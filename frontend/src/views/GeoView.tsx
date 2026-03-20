@@ -21,7 +21,7 @@ interface Customer {
 }
 
 function MapController({ center, zoom }: { center: {lat: number, lng: number}, zoom: number }) {
-  const map = useMap('spanner-geo-map');
+  const map = useMap();
   useEffect(() => {
     if (map) {
       map.setCenter(center);
@@ -33,9 +33,9 @@ function MapController({ center, zoom }: { center: {lat: number, lng: number}, z
 
 type HubKey = 'americas' | 'europe' | 'asia';
 const HUBS = {
-  americas: { name: 'Americas Hub', lat: 35.9277, lon: -90.6449 },
-  europe: { name: 'Europe Hub', lat: 50.105, lon: 15.817 },
-  asia: { name: 'Asia Hub', lat: 14.64, lon: 104.63 }
+  americas: { name: 'Americas Hub', lat: 39.8283, lon: -98.5795 },
+  europe: { name: 'Europe Hub', lat: 53.4808, lon: -2.2426 },     
+  asia: { name: 'Asia Hub', lat: 20.5937, lon: 78.9629 }          
 };
 
 export default function GeoView() {

@@ -28,10 +28,10 @@ PLACEMENT_REGIONS = {
         {"lat": 40.7128, "lon": -74.0060}   # New York City, NY
     ],
     "europe": [
-        {"lat": 48.8566, "lon": 2.3522},   # Paris, France
-        {"lat": 45.7640, "lon": 4.8357},   # Lyon, France
-        {"lat": 52.5200, "lon": 13.4050},  # Berlin, Germany
-        {"lat": 48.1351, "lon": 11.5820}   # Munich, Germany
+        {"lat": 51.5074, "lon": -0.1278},  # London, UK
+        {"lat": 53.4808, "lon": -2.2426},  # Manchester, UK
+        {"lat": 52.4862, "lon": -1.8904},  # Birmingham, UK
+        {"lat": 55.9533, "lon": -3.1883}   # Edinburgh, UK
     ],
     "asia": [
         {"lat": 19.0760, "lon": 72.8777},  # Mumbai, India
@@ -62,20 +62,17 @@ except ImportError:
 PRODUCT_PROMPTS = [
     "minimalist smart watch with AMOLED screen",
     "noise-canceling over-ear headphones pack",
-    "high-speed wireless charging pad stand",
     "4K ultra-wide curve computer monitor spec",
     "retro-style record player with bluetooth",
-    "compact air purifier with HEPA filter",
     "mechanical gaming keyboard with RGB switches",
     "ultra-lightweight wireless gaming mouse",
     "smart home security camera 1080p",
-    "portable power bank 20000mAh with fast charge",
     "high-fidelity bookshelf speakers set",
     "streaming webcam with ring light",
     "professional podcasting microphone",
-    "smart thermostat with energy tracking",
-    "mesh wifi 6 router system"
-]
+    "Compact 4K laser projector",
+    "Braided nylon fast-charging cable with LED indicator",
+    "Ergonomic office chair with lumbar support"]
 
 def generate_gemini_products(client, model_name=None, count=5):
     """Generates realistic products using Gemini AI and structured output."""
@@ -150,6 +147,11 @@ def seed_data(args):
     order_items_batch = []
 
     from faker import Faker
+    fakers = {
+        "americas": Faker('en_US'),
+        "europe": Faker('en_GB'),
+        "asia": Faker('en_IN')
+    }
     fake = Faker()
 
     # --- PART 1: Core Tables ---
@@ -206,8 +208,9 @@ def seed_data(args):
                 lat, lon = add_random_radius(hub["lat"], hub["lon"], max_km=10.0)
                 store_id = str(uuid.uuid4())
                 s2_id = get_s2_cell_id(lat, lon)
+                fake_local = fakers.get(placement, fake)
                 store_tuple = (
-                    store_id, f"{fake.company()} {placement.title()} Hub",
+                    store_id, f"{fake_local.company()} {placement.title()} Hub",
                     lat, lon, s2_id, placement
                 )
                 stores_batch.append(store_tuple)
@@ -236,9 +239,10 @@ def seed_data(args):
                 cust_id = str(uuid.uuid4())
                 s2_id = get_s2_cell_id(lat, lon)
 
+                fake_local = fakers.get(placement, fake)
                 customers_batch.append((
-                    cust_id, placement, fake.name(), 
-                    f"fraud_test_{placement}_{i}@retail.net" if is_fraud else fake.email(),
+                    cust_id, placement, fake_local.name(), 
+                    f"fraud_test_{placement}_{i}@retail.net" if is_fraud else fake_local.email(),
                     lat, lon, s2_id, random.choice(['BRONZE', 'SILVER', 'GOLD']), random.randint(0, 5000)
                 ))
 
@@ -276,8 +280,9 @@ def seed_data(args):
         logger.info(f"Generating {args.sessions} UserSessions...")
         for _ in range(args.sessions):
             cust = random.choice(c_items)
+            fake_local = fakers.get(cust[1], fake)
             user_sessions_batch.append((
-                str(uuid.uuid4()), cust[0], None, datetime.utcnow(), fake.user_agent(), fake.ipv4()
+                str(uuid.uuid4()), cust[0], None, datetime.utcnow(), fake_local.user_agent(), fake_local.ipv4()
             ))
 
         # 2. Payments
