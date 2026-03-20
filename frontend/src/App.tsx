@@ -1,7 +1,12 @@
 import ShellLayout from './components/ShellLayout';
+import { CartProvider } from './context/CartContext';
 
 function App() {
-  return <ShellLayout />;
+  return (
+    <CartProvider>
+      <ShellLayout />
+    </CartProvider>
+  );
 }
 
 export default App;

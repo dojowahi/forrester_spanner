@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { CheckCircle2, Loader2, CreditCard } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 export default function CartView() {
   const [loading, setLoading] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
-
-  const cartItems = [
-    { ProductId: "P-1000", Name: "Google Pixel 8 Pro", Quantity: 1, Price: 899.00 },
-    { ProductId: "P-1001", Name: "Pixel Buds Pro", Quantity: 2, Price: 199.99 }
-  ];
+  const { cartItems, clearCart } = useCart();
 
   const total = cartItems.reduce((acc, item) => acc + (item.Price * item.Quantity), 0);
 
@@ -30,6 +27,7 @@ export default function CartView() {
       const data = await res.json();
       if (data.order_id) {
         setOrderId(data.order_id);
+        clearCart();
       }
     } catch (err) {
       console.error(err);

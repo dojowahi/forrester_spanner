@@ -44,7 +44,7 @@ def generate_signed_url_for_product(product_id: str):
     return url
 
 @router.get("/images/{product_id}", tags=["discovery"])
-async def get_product_image(product_id: str):
+def get_product_image(product_id: str):
     """Proxies the image from GCS to the client using Signed URLs for max performance"""
     try:
         url = generate_signed_url_for_product(product_id)

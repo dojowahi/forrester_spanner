@@ -56,13 +56,13 @@ export default function ShellLayout() {
         
         <nav className="flex flex-col gap-2 flex-1 mt-4">
           <NavItem label="Storefront (CX)" icon={<Store className="w-4 h-4" />} active={activeTab === 'storefront'} onClick={() => setActiveTab('storefront')} />
+          <NavItem label="Checkout simulator" icon={<Activity className="w-4 h-4" />} active={activeTab === 'supply'} onClick={() => setActiveTab('supply')} />
           <NavItem label="Spanner Graph" icon={<ShieldAlert className="w-4 h-4" />} active={activeTab === 'risk'} onClick={() => setActiveTab('risk')} />
           <NavItem label="Geospatial" icon={<TrendingUp className="w-4 h-4" />} active={activeTab === 'growth'} onClick={() => setActiveTab('growth')} />
 
           <div className="my-2 border-t border-google-gray-100"></div>
 
           <NavItem label="DB Data" icon={<Database className="w-4 h-4" />} active={activeTab === 'db'} onClick={() => setActiveTab('db')} />
-          <NavItem label="Checkout simulator" icon={<Activity className="w-4 h-4" />} active={activeTab === 'supply'} onClick={() => setActiveTab('supply')} />
         </nav>
       </aside>
 

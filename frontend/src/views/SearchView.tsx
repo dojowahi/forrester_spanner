@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Package, Sparkles, Loader2, Camera, X } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 type SearchMode = 'fulltext' | 'hybrid';
 
@@ -15,6 +16,7 @@ interface Product {
 }
 
 export default function SearchView() {
+  const { addToCart } = useCart();
   const [query, setQuery] = useState('');
   const [flippedProductId, setFlippedProductId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -369,7 +371,13 @@ LIMIT @limit;
                         className="text-white font-bold text-sm bg-google-blue hover:bg-blue-600 px-4 py-2 rounded-lg transition-colors shadow-sm cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
-                          alert('Added to cart!');
+                          addToCart({
+                            ProductId: product.ProductId,
+                            Name: product.Name,
+                            Price: product.Price,
+                            Quantity: 1
+                          });
+                          alert('Added ' + product.Name + ' to cart!');
                         }}
                       >
                         Buy Now
