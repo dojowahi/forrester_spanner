@@ -260,6 +260,16 @@ FROM GRAPH_TABLE(
               <p>
                 Fraud rings are detected implicitly when multiple unique user sessions authenticate and share exactly the same payment tokens.
               </p>
+              <div className="bg-google-gray-50 p-4 rounded-lg border border-google-gray-200 mt-2">
+                <p className="font-bold text-google-gray-900 mb-1">What am I looking at?</p>
+                <p>
+                  The interactive graph visualizes <strong>User Sessions (🔴)</strong> connected to underlying <strong>Payment Cards (⚪)</strong>. When you see a single session suddenly fanning out to numerous different payment cards (a hub-and-spoke cluster), it visually exposes a &quot;fraud ring&quot; in action—typically indicating a bad actor rapidly testing blocks of stolen credit card numbers against your checkout system without needing any complex machine learning!
+                </p>
+                <p className="font-bold text-google-gray-900 mt-4 mb-1">How was this detected?</p>
+                <p>
+                  Spanner executed a real-time Graph traversal (<code>MATCH</code>) over the live operational tables (<code>UserSessions</code> and <code>Payments</code>). Instead of exporting data to a separate Graph database or running an overnight batch job, this visualization is instantly powered by querying the exact same unified Spanner database handling the live shopping carts!
+                </p>
+              </div>
             </div>
           </div>
         </div>

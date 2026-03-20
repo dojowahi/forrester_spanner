@@ -287,14 +287,20 @@ def seed_data(args):
 
         # 2. Payments
         logger.info(f"Generating Payments with realistic Fraud Clusters ...")
-        import math
-        num_fraud_sessions = max(1, math.ceil(len(user_sessions_batch) * 0.05))
+        # Generate exactly 10 fraud rings so the UI "Top 10" shows the full random variation
+        num_fraud_sessions = min(10, len(user_sessions_batch))
         fraud_sessions = random.sample(user_sessions_batch, num_fraud_sessions)
         fraud_set = {s[0] for s in fraud_sessions}
         
         for session in user_sessions_batch:
             is_fraud = session[0] in fraud_set
-            num_payments = random.randint(7, 15) if is_fraud else 1
+            
+            # Massive variance so sorting doesn't look artificially contiguous
+            if is_fraud:
+                # 50% chance of a massive ring (20-40), 50% chance of a medium ring (4-19)
+                num_payments = random.randint(20, 40) if random.random() > 0.5 else random.randint(4, 19)
+            else:
+                num_payments = 1
             
             for _ in range(num_payments):
                 payments_batch.append((
