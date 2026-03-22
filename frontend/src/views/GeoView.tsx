@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Loader2, X, ArrowLeft, Target, Globe } from 'lucide-react';
 import { APIProvider, Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
+import { useGeo } from '../context/GeoContext';
 
 interface Store {
   StoreId: string;
@@ -39,7 +40,8 @@ const HUBS = {
 };
 
 export default function GeoView() {
-  const [activeHub, setActiveHub] = useState<HubKey>('americas');
+  const { geo, setGeo } = useGeo();
+  const [activeHub, setActiveHub] = useState<HubKey>(geo !== 'global' ? geo as HubKey : 'americas');
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSql, setShowSql] = useState(false);
@@ -49,6 +51,14 @@ export default function GeoView() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [groupedLoyalty, setGroupedLoyalty] = useState<{LoyaltyTier: string, MemberCount: number}[]>([]);
+
+  useEffect(() => {
+    if (geo !== 'global' && geo !== activeHub) {
+      setActiveHub(geo as HubKey);
+      setSelectedStore(null);
+      setCustomers([]);
+    }
+  }, [geo]);
   
   const sqlQuery = selectedStore ? `
 -- SPANNER GEOSPATIAL PROXIMITY SEARCH:
@@ -148,7 +158,7 @@ LIMIT 50
                 {(Object.keys(HUBS) as HubKey[]).map((key) => (
                   <button
                     key={key}
-                    onClick={() => { setActiveHub(key); setSelectedStore(null); setCustomers([]); }}
+                    onClick={() => { setActiveHub(key); setSelectedStore(null); setCustomers([]); setGeo(key); }}
                     className={`px-3 py-1.5 text-xs font-bold rounded-full whitespace-nowrap transition-colors cursor-pointer ${activeHub === key ? 'bg-google-green text-white' : 'bg-google-gray-100 text-google-gray-600 hover:bg-google-gray-200'}`}
                   >
                     {HUBS[key].name}
@@ -327,7 +337,7 @@ LIMIT 50
                   <li><strong>Native Distance Math:</strong> The query rapidly processes Pythagorean approximations `POWER(Lat1-Lat2, 2) + POWER(Lon1-Lon2, 2)` directly in the `WHERE` clause to filter out-of-range rows.</li>
                   <li><strong>Cross-Entity Proximity:</strong> By running a fast `JOIN` between <code className="bg-google-gray-200 px-1 rounded text-[10px]">Stores</code> and <code className="bg-google-gray-200 px-1 rounded text-[10px]">Customers</code>, the backend pinpoints eligible loyalty members within a strict 5km promotional radius.</li>
                   <li><strong>Geospatial Aggregation:</strong> Demonstrates Spanner natively performing a complex `GROUP BY` reduction purely based on members residing inside the math-computed bounding radius, showing real-time tiered counts.</li>
-                  <li><strong>Global Regions:</strong> Hub filtering seamlessly re-queries the entire Americas, Europe, or Asia dataset to locate central supply stores locally.</li>
+                  <li><strong>Global Regions (Geo-Partitioning):</strong> Hub filtering strictly applies a <code>PlacementKey</code> filter, seamlessly ensuring that the Geospatial query execution is routed exclusively to the local Spanner nodes for the selected region (Americas, Europe, or Asia).</li>
                 </ul>
               </div>
             </div>

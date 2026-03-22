@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Loader2, X, Share2 } from 'lucide-react';
 import ForceGraph2D from 'react-force-graph-2d';
+import { useGeo } from '../context/GeoContext';
 
 interface Recommendation {
   p_Name: string;
@@ -13,6 +14,8 @@ export default function RecsView() {
   const [loading, setLoading] = useState(true);
   const [selectedGraph, setSelectedGraph] = useState<{ title: string, data: any, analysisText: React.ReactNode } | null>(null);
   
+  const { geo } = useGeo();
+  
   const [showSql, setShowSql] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
 
@@ -23,7 +26,7 @@ export default function RecsView() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const recsRes = await fetch('/api/v1/customers/mock-cust-id/recommendations');
+        const recsRes = await fetch(`/api/v1/customers/mock-cust-id/recommendations?geo=${geo}`);
         const recsData = await recsRes.json();
         
         setRecommendations(recsData.recommendations || []);
@@ -39,7 +42,7 @@ export default function RecsView() {
       }
     };
     fetchData();
-  }, []);
+  }, [geo]);
 
   const handleRecClick = (rec: Recommendation) => {
     const pName = rec.p_Name;
@@ -108,7 +111,8 @@ FROM GRAPH_TABLE(
     MATCH (c1:Customers {CustomerId: @customer_id})-[:Purchased]->(p1:Products)<-[:Purchased]-(c2:Customers)-[:Purchased]->(p2:Products)
     WHERE p1.ProductId <> p2.ProductId AND c1.CustomerId <> c2.CustomerId
     COLUMNS (p1.Name AS P1Name, c2.CustomerId AS PeerId, p2.Name AS P2Name)
-) AS results
+) AS results${geo !== 'global' ? `\nJOIN Inventory i ON results.P2ProductId = i.ProductId\nJOIN Stores s ON i.StoreId = s.StoreId` : ''}
+${geo !== 'global' ? `WHERE s.PlacementKey = '${geo}'` : ''}
 `;
 
   return (
@@ -290,6 +294,10 @@ FROM GRAPH_TABLE(
                 <p className="font-bold text-google-gray-900 mb-1">What is a &quot;Peer Overlap&quot;?</p>
                 <p>
                   The peer overlap number represents the count of unique customers (your &quot;peers&quot;) who purchased at least one of the exact same products as you, and then also went on to purchase the recommended product. A higher overlap number indicates a stronger, more confident recommendation driven by similar user behavior!
+                </p>
+                <p className="font-bold text-google-gray-900 mt-4 mb-1">Geo-Partitioning (Recommendations)</p>
+                <p>
+                  When a specific region is selected, the Graph query dynamically <code>JOIN</code>s the Graph's recommended product output against the relational <strong>Inventory</strong> and <strong>Stores</strong> tables, pushing a <code>PlacementKey</code> filter. This guarantees that Spanner only returns peer recommendations for products actively available in your local region!
                 </p>
               </div>
             </div>

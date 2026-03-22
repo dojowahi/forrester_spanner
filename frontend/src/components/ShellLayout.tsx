@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { Store, ShieldAlert, ThumbsUp, TrendingUp, Database, Activity } from 'lucide-react';
+import { Store, ShieldAlert, ThumbsUp, TrendingUp, Database, Activity, Code } from 'lucide-react';
 import SearchView from '../views/SearchView';
 import FraudView from '../views/FraudView';
 import RecsView from '../views/RecsView';
 import GeoView from '../views/GeoView';
 import CartView from '../views/CartView';
 import DbDataView from '../views/DbDataView';
+import SpannerPlaygroundView from '../views/SpannerPlaygroundView';
+import { useGeo } from '../context/GeoContext';
 
-type TabId = 'storefront' | 'risk' | 'growth' | 'db' | 'supply' | 'recs';
+type TabId = 'storefront' | 'risk' | 'growth' | 'db' | 'supply' | 'recs' | 'playground';
 
 interface NavItemProps {
   label: string;
@@ -32,6 +34,7 @@ const NavItem = ({ label, icon, active, onClick }: NavItemProps) => (
 
 export default function ShellLayout() {
   const [activeTab, setActiveTab] = useState<TabId>('storefront');
+  const { geo, setGeo } = useGeo();
 
   const renderContent = () => {
     switch(activeTab) {
@@ -39,6 +42,7 @@ export default function ShellLayout() {
       case 'risk': return <FraudView />;
       case 'recs': return <RecsView />;
       case 'db': return <DbDataView />;
+      case 'playground': return <SpannerPlaygroundView />;
       case 'supply': return <CartView />;
       case 'growth': return <GeoView />;
     }
@@ -66,14 +70,29 @@ export default function ShellLayout() {
           <div className="my-2 border-t border-google-gray-100"></div>
 
           <NavItem label="DB Data" icon={<Database className="w-4 h-4" />} active={activeTab === 'db'} onClick={() => setActiveTab('db')} />
+          <NavItem label="Spanner Playground" icon={<Code className="w-4 h-4" />} active={activeTab === 'playground'} onClick={() => setActiveTab('playground')} />
         </nav>
       </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="bg-white border-b border-google-gray-200 px-6 py-4 flex items-center">
+        <header className="bg-white border-b border-google-gray-200 px-6 py-4 flex items-center justify-between">
           <h1 className="text-lg font-bold text-google-blue">Retail Control Tower Dashboard</h1>
+          
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-google-gray-600 uppercase tracking-wider">Placement Region:</span>
+            <select 
+              value={geo} 
+              onChange={(e) => setGeo(e.target.value as any)}
+              className="bg-white hover:bg-google-gray-50 transition-colors border-2 border-google-gray-200 text-google-gray-800 text-sm font-medium rounded-lg focus:ring-4 focus:ring-google-blue/20 focus:border-google-blue block py-2 px-3 outline-none cursor-pointer"
+            >
+              <option value="global">🌍 Global (Unpartitioned)</option>
+              <option value="americas">🌎 Americas Partition</option>
+              <option value="europe">🌍 Europe Partition</option>
+              <option value="asia">🌏 Asia Partition</option>
+            </select>
+          </div>
         </header>
 
         {/* Scrollable Content */}

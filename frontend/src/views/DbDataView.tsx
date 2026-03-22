@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Database, Loader2 } from 'lucide-react';
+import { useGeo } from '../context/GeoContext';
 
 export default function DbDataView() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { geo } = useGeo();
 
   useEffect(() => {
-    fetch('/api/v1/debug/tables')
+    setLoading(true);
+    fetch(`/api/v1/debug/tables?geo=${geo}`)
       .then(res => res.json())
       .then(fetchedData => {
         setData(fetchedData);
@@ -16,7 +19,7 @@ export default function DbDataView() {
         console.error("Failed to fetch tables", err);
         setLoading(false);
       });
-  }, []);
+  }, [geo]);
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto w-full">

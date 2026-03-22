@@ -1,11 +1,14 @@
 import ShellLayout from './components/ShellLayout';
 import { CartProvider } from './context/CartContext';
+import { GeoProvider } from './context/GeoContext';
 
 function App() {
   return (
-    <CartProvider>
-      <ShellLayout />
-    </CartProvider>
+    <GeoProvider>
+      <CartProvider>
+        <ShellLayout />
+      </CartProvider>
+    </GeoProvider>
   );
 }
 

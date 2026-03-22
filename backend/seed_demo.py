@@ -246,10 +246,24 @@ def seed_data(args):
                     lat, lon, s2_id, random.choice(['BRONZE', 'SILVER', 'GOLD']), random.randint(0, 5000)
                 ))
 
-        # 3. Generate Inventory (Cross product)
-        logger.info(f"Generating Inventory ({len(stores_batch)} stores x {len(products_batch)} products)...")
+        # 3. Generate Inventory (Region-specific product availability)
+        logger.info(f"Generating Inventory with Regional Product Constraints...")
+        
+        # Assign a random subset (e.g., 60%) of all products to each region
+        # This guarantees that filtering by region on the frontend yields different product sets
+        products_by_region = {}
+        for region in PLACEMENT_REGIONS.keys():
+            products_by_region[region] = random.sample(products_batch, max(1, int(len(products_batch) * 0.6)))
+            
         for s in stores_batch:
-            for p in products_batch:
+            placement = s[5]
+            regional_products = products_by_region.get(placement, products_batch) # fallback to all
+            
+            # For each store, carry 80-100% of the region's products
+            carry_count = int(len(regional_products) * random.uniform(0.8, 1.0))
+            store_products = random.sample(regional_products, carry_count)
+            
+            for p in store_products:
                 inventory_batch.append((
                     s[0], p[0], random.randint(10, 500), datetime.utcnow()
                 ))

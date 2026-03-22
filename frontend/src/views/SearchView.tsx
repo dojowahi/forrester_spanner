@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Package, Sparkles, Loader2, Camera, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useGeo } from '../context/GeoContext';
 
 type SearchMode = 'fulltext' | 'hybrid';
 
@@ -17,6 +18,7 @@ interface Product {
 
 export default function SearchView() {
   const { addToCart } = useCart();
+  const { geo } = useGeo();
   const [query, setQuery] = useState('');
   const [flippedProductId, setFlippedProductId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -33,12 +35,17 @@ export default function SearchView() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Load initial trending products
-    handleSearch('trending', null, true);
-  }, []);
+    // Load initial trending products or retry current search when geo changes
+    if (query || selectedFile) {
+      handleSearch(query, selectedFile);
+    } else {
+      handleSearch('trending', null, true);
+    }
+    // eslint-disable-next-line
+  }, [geo]); // Re-run when placement geo changes
 
   const handleSearch = async (searchQuery: string, file: File | null = null, isInitialLoad = false) => {
-    if (!searchQuery.trim() && !file) return;
+    if (!searchQuery.trim() && !file && !isInitialLoad) return;
     setIsSearching(true);
     if (!isInitialLoad) {
       setHasSearched(true);
@@ -48,18 +55,19 @@ export default function SearchView() {
     try {
       let response;
       if (searchQuery === 'trending' && isInitialLoad) {
-        response = await fetch('/api/v1/products');
+        response = await fetch(`/api/v1/products?geo=${geo}`);
       } else if (file) {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('limit', '8');
+        formData.append('geo', geo);
 
         response = await fetch('/api/v1/search/image', {
           method: 'POST',
           body: formData,
         });
       } else {
-        response = await fetch(`/api/v1/search/hybrid?query=${encodeURIComponent(searchQuery)}&mode=${searchMode}`);
+        response = await fetch(`/api/v1/search/hybrid?query=${encodeURIComponent(searchQuery)}&mode=${searchMode}&geo=${geo}`);
       }
 
       if (response && response.ok) {
@@ -118,28 +126,26 @@ export default function SearchView() {
   const sqlQuery = searchType === 'image' ? `
 -- Spanner Vector Search using COSINE_DISTANCE (Image Match)
 SELECT 
-    ProductId, 
-    Name, 
-    Price, 
-    InventoryCount, 
-    ThumbnailUrl,
-    COSINE_DISTANCE(ImageEmbedding, @query_embedding) as distance
-FROM Products
-WHERE ImageEmbedding IS NOT NULL
+    p.ProductId, 
+    p.Name, 
+    p.Price, 
+    p.ThumbnailUrl,
+    COSINE_DISTANCE(p.ImageEmbedding, @query_embedding) as distance
+FROM Products p
+WHERE p.ImageEmbedding IS NOT NULL${geo !== 'global' ? `\n  AND EXISTS (SELECT 1 FROM Inventory i JOIN Stores s ON i.StoreId = s.StoreId WHERE i.ProductId = p.ProductId AND s.PlacementKey = '${geo}')` : ''}
 ORDER BY distance ASC
 LIMIT @limit;
 ` : searchMode === 'fulltext' ? `
 -- Spanner FullText Search (Index-backed with SEARCH())
 SELECT 
-    ProductId, 
-    Name, 
-    Description,
-    Price, 
-    InventoryCount, 
-    ThumbnailUrl,
+    p.ProductId, 
+    p.Name, 
+    p.Description,
+    p.Price, 
+    p.ThumbnailUrl,
     0.0 as distance
-FROM Products
-WHERE SEARCH(SearchTokens, @query)
+FROM Products p
+WHERE SEARCH(p.SearchTokens, @query)${geo !== 'global' ? `\n  AND EXISTS (SELECT 1 FROM Inventory i JOIN Stores s ON i.StoreId = s.StoreId WHERE i.ProductId = p.ProductId AND s.PlacementKey = '${geo}')` : ''}
 LIMIT @limit;
 ` : `
 -- Spanner Hybrid Search (Vector + Lexical CTE Boost)
@@ -150,7 +156,6 @@ SELECT
     p.ProductId, 
     p.Name, 
     p.Price, 
-    p.InventoryCount, 
     p.ThumbnailUrl,
     (
         COSINE_DISTANCE(p.DescriptionEmbedding, @query_embedding) * 0.70 +
@@ -158,6 +163,7 @@ SELECT
     ) as distance
 FROM Products p
 LEFT JOIN Matchers m ON p.ProductId = m.ProductId
+WHERE 1=1${geo !== 'global' ? `\n  AND EXISTS (SELECT 1 FROM Inventory i JOIN Stores s ON i.StoreId = s.StoreId WHERE i.ProductId = p.ProductId AND s.PlacementKey = '${geo}')` : ''}
 ORDER BY
     COALESCE(m.match_tier, 1) ASC,
     distance ASC
@@ -446,6 +452,10 @@ LIMIT @limit;
               <p>
                 The backend effortlessly routes between strict Keyword Search and unified Hybrid semantic retrieval to surface exactly what users intend!
               </p>
+              <div className="bg-google-gray-50 border border-google-gray-100 p-4 rounded-xl space-y-2">
+                <p className="font-bold text-google-gray-800 text-xs uppercase">Geo-Partitioning</p>
+                <p>When a specific region (e.g., Asia) is selected via the global dropdown, the Search dynamically <code>JOIN</code>s against the relational <code>Inventory</code> and <code>Stores</code> tables, pushing a <code>PlacementKey</code> filter. This guarantees you only see products physically available in your region, routing the search execution to the local partition!</p>
+              </div>
             </div>
           </div>
         </div>

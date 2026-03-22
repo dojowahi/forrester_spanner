@@ -51,7 +51,7 @@ ActiveCart JSON,
 LastEvent TIMESTAMP OPTIONS (allow_commit_timestamp=true),
 UserAgent STRING(MAX),
 IPAddress STRING(45) -- Moved here for easier session-based fraud tracking
-) PRIMARY KEY (SessionId), ROW DELETION POLICY (OLDER_THAN (LastEvent, INTERVAL 1 DAY));
+) PRIMARY KEY (SessionId), ROW DELETION POLICY (OLDER_THAN (LastEvent, INTERVAL 7 DAY));
 -- 5. Orders & Payments (Fraud Detection Core)
 CREATE TABLE Orders (
 CustomerId STRING(36) NOT NULL,
@@ -116,15 +116,11 @@ EDGE TABLES (
     DESTINATION KEY (ProductId) REFERENCES Products (ProductId)
 );
 
--- Geospatial S2 Indexes
-CREATE INDEX StoresByLocation ON Stores(S2CellId);
-CREATE INDEX CustomersByLocation ON Customers(S2CellId);
+-- Geospatial S2 Indexes (Unused, removed to save storage)
 
 -- Graph & Geo Optimization Indexes
 CREATE INDEX OrderItemsByProductId ON OrderItems(ProductId);
 CREATE INDEX PaymentsBySessionId ON Payments(SessionId);
-CREATE INDEX PaymentsByToken ON Payments(PaymentMethodToken);
-CREATE INDEX CustomersByCoords ON Customers(Latitude, Longitude);
 
 -- 7. Search & Change Streams
 CREATE VECTOR INDEX ProductDescriptionIndex ON Products (DescriptionEmbedding)

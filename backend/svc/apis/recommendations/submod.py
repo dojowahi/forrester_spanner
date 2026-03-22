@@ -2,24 +2,30 @@ from __future__ import annotations
 from typing import List, Dict
 from google.cloud import spanner
 
-def get_recommendations(database, customer_id: str, limit: int = 5) -> Dict:
+def get_recommendations(database, customer_id: str, limit: int = 5, geo: str = "global") -> Dict:
     """
     Traverses graph to perform collaborative filtering recommendations:
     Customers who bought items that Customer X bought also bought Y.
     """
-    query = """
+    geo_join = "\n        JOIN Inventory i ON results.P2ProductId = i.ProductId\n        JOIN Stores s ON i.StoreId = s.StoreId" if geo != "global" else ""
+    geo_where = "\n        WHERE s.PlacementKey = @geo" if geo != "global" else ""
+    
+    query = f"""
         SELECT results.P1Name, results.PeerId, results.P2Name
         FROM GRAPH_TABLE(
             RetailGraph
-            MATCH (c1:Customers {CustomerId: @customer_id})-[:Purchased]->(p1:Products)<-[:Purchased]-(c2:Customers)-[:Purchased]->(p2:Products)
+            MATCH (c1:Customers {{CustomerId: @customer_id}})-[:Purchased]->(p1:Products)<-[:Purchased]-(c2:Customers)-[:Purchased]->(p2:Products)
             WHERE p1.ProductId <> p2.ProductId AND c1.CustomerId <> c2.CustomerId
-            COLUMNS (p1.Name AS P1Name, c2.CustomerId AS PeerId, p2.Name AS P2Name)
-        ) AS results
+            COLUMNS (p1.Name AS P1Name, c2.CustomerId AS PeerId, p2.Name AS P2Name, p2.ProductId as P2ProductId)
+        ) AS results {geo_join} {geo_where}
     """
     
     params = {
         "customer_id": customer_id,
     }
+    
+    if geo != "global":
+        params["geo"] = geo
     
     aggregates = []
     nodes = []
@@ -30,6 +36,8 @@ def get_recommendations(database, customer_id: str, limit: int = 5) -> Dict:
             print(f"Executing Graph Recommendations for Customer: {customer_id}")
             from google.cloud.spanner_v1 import param_types
             ptypes = {"customer_id": param_types.STRING}
+            if geo != "global":
+                ptypes["geo"] = param_types.STRING
             rows = snapshot.execute_sql(query, params=params, param_types=ptypes)
             
             # Aggregate in python

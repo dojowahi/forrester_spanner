@@ -269,6 +269,10 @@ FROM GRAPH_TABLE(
                 <p>
                   Spanner executed a real-time Graph traversal (<code>MATCH</code>) over the live operational tables (<code>UserSessions</code> and <code>Payments</code>). Instead of exporting data to a separate Graph database or running an overnight batch job, this visualization is instantly powered by querying the exact same unified Spanner database handling the live shopping carts!
                 </p>
+                <p className="font-bold text-google-gray-900 mt-4 mb-1">Is this Geo-Partitioned?</p>
+                <p>
+                  <strong>No, by design!</strong> While the storefront filters by your selected region, Fraud Rings operate globally. The <code>UserSessions</code> and <code>Payments</code> tables do not have a <code>PlacementKey</code>. This allows Spanner to effortlessly traverse the <strong>entire unified global dataset</strong> in a single operational query to find cross-region attackers, all without moving data to an analytical warehouse!
+                </p>
               </div>
             </div>
           </div>

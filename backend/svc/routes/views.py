@@ -18,10 +18,21 @@ from fastapi.responses import StreamingResponse, RedirectResponse
 import datetime
 
 @router.get("/debug/tables", tags=["admin"])
-async def debug_tables():
+async def debug_tables(geo: str = "global"):
     """Returns 5 rows from each table"""
-    results = get_table_samples(database)
+    results = get_table_samples(database, geo=geo)
     return results
+
+from pydantic import BaseModel
+
+class QueryRequest(BaseModel):
+    query: str
+
+@router.post("/debug/query", tags=["admin"])
+async def execute_query(req: QueryRequest):
+    """Executes arbitrary Spanner SQL/GQL"""
+    from backend.svc.apis.debug.submod import execute_raw_query
+    return execute_raw_query(database, req.query)
 
 storage_client = storage.Client()
 BUCKET_NAME = "gen-ai-4all-live-retail-images"
@@ -62,23 +73,23 @@ def get_product_image(product_id: str):
 
 # --- Discovery & Search ---
 @router.get("/products", tags=["discovery"])
-async def get_products():
+async def get_products(geo: str = "global"):
     """Returns basic products from the database for initial load"""
     from backend.svc.apis.search.submod import get_all_products
-    results = get_all_products(database)
+    results = get_all_products(database, geo=geo)
     return {"results": results}
 
 @router.get("/search/hybrid", tags=["discovery"])
-async def search_hybrid(query: str, mode: str = "hybrid"):
+async def search_hybrid(query: str, mode: str = "hybrid", geo: str = "global"):
     """Combines Vector and Full-Text Search"""
-    results = search_products(database, query=query, client_ai=embedding_client, mode=mode)
+    results = search_products(database, query=query, client_ai=embedding_client, mode=mode, geo=geo)
     return {"results": results}
 
 @router.post("/search/image", tags=["discovery"])
-async def search_image_endpoint(file: UploadFile = File(...), limit: int = Form(10)):
+async def search_image_endpoint(file: UploadFile = File(...), limit: int = Form(10), geo: str = Form("global")):
     """Accepts an image upload and executes exact neighbor vector search"""
     image_bytes = await file.read()
-    results = search_image(database, image_bytes=image_bytes, client_ai=embedding_client, limit=limit)
+    results = search_image(database, image_bytes=image_bytes, client_ai=embedding_client, limit=limit, geo=geo)
     return {"results": results}
 
 @router.get("/customers/{customer_id}/recommendations", tags=["discovery"])

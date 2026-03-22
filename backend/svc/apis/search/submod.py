@@ -2,36 +2,41 @@ from __future__ import annotations
 from typing import List, Dict
 from google.cloud import spanner
 
-def hybrid_search(database, vector_emb: List[float], query_text: str, limit: int = 10, mode: str = "hybrid") -> List[Dict]:
+def hybrid_search(database, vector_emb: List[float], query_text: str, limit: int = 10, mode: str = "hybrid", geo: str = "global") -> List[Dict]:
     """
     Executes Hybrid Search Combining Vector Distance and Full-Text tokens based on mode.
     """
+    geo_join = ""
+    geo_where = "\n            AND EXISTS (SELECT 1 FROM Inventory i JOIN Stores s ON i.StoreId = s.StoreId WHERE i.ProductId = p.ProductId AND s.PlacementKey = @geo)" if geo != "global" else ""
+
     if mode == "fulltext":
-        query = """
-            SELECT ProductId, Name, Description, ThumbnailUrl, Price, Category
-            FROM Products
-            WHERE SEARCH(SearchTokens, @text_query)
+        query = f"""
+            SELECT p.ProductId, p.Name, p.Description, p.ThumbnailUrl, p.Price, p.Category
+            FROM Products p {geo_join}
+            WHERE SEARCH(p.SearchTokens, @text_query) {geo_where}
             LIMIT @limit
         """
         params = {"text_query": query_text, "limit": limit}
         param_types = {"text_query": spanner.param_types.STRING, "limit": spanner.param_types.INT64}
     elif mode == "embedding":
-        query = """
-            SELECT ProductId, Name, Description, ThumbnailUrl, Price, Category
-            FROM Products
-            ORDER BY COSINE_DISTANCE(DescriptionEmbedding, @vector_emb) ASC
+        query = f"""
+            SELECT p.ProductId, p.Name, p.Description, p.ThumbnailUrl, p.Price, p.Category
+            FROM Products p {geo_join}
+            WHERE p.DescriptionEmbedding IS NOT NULL {geo_where}
+            ORDER BY COSINE_DISTANCE(p.DescriptionEmbedding, @vector_emb) ASC
             LIMIT @limit
         """
         params = {"vector_emb": vector_emb, "limit": limit}
         param_types = {"vector_emb": spanner.param_types.Array(spanner.param_types.FLOAT32), "limit": spanner.param_types.INT64}
     else: # hybrid
-        query = """
+        query = f"""
             WITH Matchers AS (
                 SELECT ProductId, 0 as match_tier FROM Products WHERE SEARCH(SearchTokens, @text_query)
             )
             SELECT p.ProductId, p.Name, p.Description, p.ThumbnailUrl, p.Price, p.Category
-            FROM Products p
+            FROM Products p {geo_join}
             LEFT JOIN Matchers m ON p.ProductId = m.ProductId
+            WHERE 1=1 {geo_where}
             ORDER BY
                 COALESCE(m.match_tier, 1) ASC,
                 (
@@ -47,6 +52,10 @@ def hybrid_search(database, vector_emb: List[float], query_text: str, limit: int
             "limit": spanner.param_types.INT64
         }
     
+    if geo != "global":
+        params["geo"] = geo
+        param_types["geo"] = spanner.param_types.STRING
+        
     results = []
     try:
         with database.snapshot() as snapshot:
@@ -67,14 +76,17 @@ def hybrid_search(database, vector_emb: List[float], query_text: str, limit: int
         
     return results
 
-def image_search(database, vector_emb: List[float], limit: int = 10) -> List[Dict]:
+def image_search(database, vector_emb: List[float], limit: int = 10, geo: str = "global") -> List[Dict]:
     """
     Executes Vector Search based purely on Image Embedding Distance.
     """
-    query = """
-        SELECT ProductId, Name, Description, ThumbnailUrl, Price, Category, COSINE_DISTANCE(ImageEmbedding, @vector_emb) as distance
-        FROM Products
-        WHERE ImageEmbedding IS NOT NULL
+    geo_join = ""
+    geo_where = "\n        AND EXISTS (SELECT 1 FROM Inventory i JOIN Stores s ON i.StoreId = s.StoreId WHERE i.ProductId = p.ProductId AND s.PlacementKey = @geo)" if geo != "global" else ""
+    
+    query = f"""
+        SELECT p.ProductId, p.Name, p.Description, p.ThumbnailUrl, p.Price, p.Category, COSINE_DISTANCE(p.ImageEmbedding, @vector_emb) as distance
+        FROM Products p {geo_join}
+        WHERE p.ImageEmbedding IS NOT NULL {geo_where}
         ORDER BY distance ASC
         LIMIT @limit
     """
@@ -88,6 +100,10 @@ def image_search(database, vector_emb: List[float], limit: int = 10) -> List[Dic
         "vector_emb": spanner.param_types.Array(spanner.param_types.FLOAT32),
         "limit": spanner.param_types.INT64
     }
+    
+    if geo != "global":
+        params["geo"] = geo
+        param_types["geo"] = spanner.param_types.STRING
     
     results = []
     try:
@@ -110,18 +126,25 @@ def image_search(database, vector_emb: List[float], limit: int = 10) -> List[Dic
         
     return results
 
-def get_all_products(database, limit: int = 8) -> List[Dict]:
+def get_all_products(database, limit: int = 8, geo: str = "global") -> List[Dict]:
     """
     Fetches basic products from the DB for initial UI load.
     """
-    query = """
-        SELECT ProductId, Name, Description, ThumbnailUrl, Price, Category
-        FROM Products
+    geo_join = ""
+    geo_where = "\n        WHERE EXISTS (SELECT 1 FROM Inventory i JOIN Stores s ON i.StoreId = s.StoreId WHERE i.ProductId = p.ProductId AND s.PlacementKey = @geo)" if geo != "global" else ""
+    
+    query = f"""
+        SELECT p.ProductId, p.Name, p.Description, p.ThumbnailUrl, p.Price, p.Category
+        FROM Products p {geo_join} {geo_where}
         LIMIT @limit
     """
     
     params = {"limit": limit}
     param_types = {"limit": spanner.param_types.INT64}
+    
+    if geo != "global":
+        params["geo"] = geo
+        param_types["geo"] = spanner.param_types.STRING
     
     results = []
     try:
